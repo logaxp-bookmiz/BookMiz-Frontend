@@ -3,6 +3,8 @@
 import React, { useState, useEffect } from "react";
 import { FiFilter, FiSearch, FiX, FiMapPin, FiClock, FiStar, FiChevronRight, FiChevronLeft } from "react-icons/fi";
 import FilterModal from "@/components/features/marketplace/Filtermodal";
+import Navbar from "@/components/layout/Navbar"; // Add this import
+import { SelectedPage } from "@/components/ui/types"; // Add this import
 
 
 // Static data
@@ -147,6 +149,10 @@ const MarketPlace = () => {
     rating: "all",
     location: "all",
   });
+  
+  // Add state for Navbar
+  const [selectedPage, setSelectedPage] = useState<SelectedPage>(SelectedPage.Marketplace);
+  const [isScrolled, setIsScrolled] = useState(false);
 
   const categories = ["All", "Beauty", "Barbering", "Wellness", "Hair", "Nails"];
 
@@ -156,10 +162,11 @@ const MarketPlace = () => {
   const currentServices = filteredServices.slice(indexOfFirstItem, indexOfLastItem);
   const totalPages = Math.ceil(filteredServices.length / itemsPerPage);
 
-  // Handle scroll for sticky filter bar
+  // Handle scroll for sticky filter bar AND navbar
   useEffect(() => {
     const handleScroll = () => {
       setIsFilterVisible(window.scrollY > 100);
+      setIsScrolled(window.scrollY > 50);
     };
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
@@ -194,8 +201,15 @@ const MarketPlace = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Hero Section with Background Image */}
-      <div className="relative h-72 overflow-hidden">
+      {/* Add Navbar */}
+      <Navbar 
+        selectedPage={selectedPage} 
+        setSelectedPage={setSelectedPage}
+        isScrolled={isScrolled}
+      />
+
+      {/* Hero Section with Background Image - Add top padding to account for fixed navbar */}
+      <div className="relative h-72 overflow-hidden mt-16 sm:mt-20">
         <img
           src="https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=1200&auto=format&fit=crop"
           alt="Marketplace Header"
@@ -276,7 +290,7 @@ const MarketPlace = () => {
 
       {/* Sticky Filter Bar */}
       <div
-        className={`sticky top-0 w-full bg-white/95 backdrop-blur-lg shadow-lg z-50 transition-all duration-300 border-b border-gray-200 ${
+        className={`sticky top-16 sm:top-20 w-full bg-white/95 backdrop-blur-lg shadow-lg z-40 transition-all duration-300 border-b border-gray-200 ${
           isFilterVisible
             ? "translate-y-0 opacity-100"
             : "-translate-y-full opacity-0 pointer-events-none"
