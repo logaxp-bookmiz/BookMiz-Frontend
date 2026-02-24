@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { FaEyeSlash } from "react-icons/fa";
+import { useRouter } from "next/navigation";
 import { EyeIcon } from "lucide-react";
 
 export default function LoginPage() {
@@ -11,12 +12,16 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     // Add your login logic here
-    setTimeout(() => setIsLoading(false), 2000);
+    setTimeout(() => {
+      setIsLoading(false);
+      router.push("/pre-dashboard"); // ← Redirect to Pre-Dashboard
+    }, 2000);
   };
 
   return (

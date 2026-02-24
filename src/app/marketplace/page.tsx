@@ -394,7 +394,7 @@ const MarketPlace = () => {
                     />
                     {professional.featured && (
                       <div className="absolute top-4 left-4 px-4 py-2 bg-gradient-to-r from-yellow-400 to-orange-500 text-white rounded-full text-xs font-bold shadow-lg">
-                        ⭐ RECOMMENDED
+                        ⭐ Recommended
                       </div>
                     )}
                     <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between">
