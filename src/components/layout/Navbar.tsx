@@ -1,15 +1,12 @@
 import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
-import {
-  Bars3Icon,
-  XMarkIcon,
-  ChevronDownIcon,
-} from "@heroicons/react/24/solid";
 import Link from "next/link";
 import { SelectedPage } from "@/components/ui/types";
 import ActionButton from "@/components/ui/ActionButton";
 import MobileActionButton from "@/components/ui/ActionButton";
 import Image from "next/image";
+import { ChevronDownIcon } from "lucide-react";
+import { FaBars, FaXRay } from "react-icons/fa";
 
 type Props = {
   selectedPage: SelectedPage;
@@ -219,7 +216,9 @@ const Navbar = ({
                   className={`flex items-center gap-2 transition-all duration-300 ${textColorClass} hover:bg-white/10 px-3 py-2 rounded-lg group`}
                   onClick={handleDropdownToggle}
                 >
-                  <span className="text-xl">{countryFlags[selectedCountry]}</span>
+                  <span className="text-xl">
+                    {countryFlags[selectedCountry]}
+                  </span>
                   <span className="text-sm font-medium">{selectedCountry}</span>
                   <ChevronDownIcon className="h-3 w-3 transition-transform duration-200 group-hover:rotate-180" />
                 </button>
@@ -269,7 +268,7 @@ const Navbar = ({
               className="ml-auto p-2 flex items-center justify-center"
               onClick={() => setIsMenuToggled(!isMenuToggled)}
             >
-              <Bars3Icon
+              <FaBars
                 className={`h-6 w-6 transition duration-500 ${textColorClass}`}
               />
             </button>
@@ -287,7 +286,7 @@ const Navbar = ({
               onClick={() => setIsMenuToggled(!isMenuToggled)}
               className="p-2 rounded-full hover:bg-white/10 transition-all duration-200"
             >
-              <XMarkIcon className="h-6 w-6 text-white" />
+              <FaXRay className="h-6 w-6 text-white" />
             </button>
           </div>
           <div className="ml-8 flex flex-col gap-4 text-lg text-white">

@@ -13,7 +13,7 @@ const Home = () => {
   const isTablet = useMediaQuery("(min-width:768px) and (max-width:1023px)");
   const isMobile = useMediaQuery("(max-width:767px)");
 
-  const searchBoxRef = useRef<HTMLDivElement>(null);
+  const searchBoxRef = useRef<HTMLFormElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const categoriesDropdownRef = useRef<HTMLDivElement>(null);
   const [searchBoxWidth, setSearchBoxWidth] = useState<string>("100%");

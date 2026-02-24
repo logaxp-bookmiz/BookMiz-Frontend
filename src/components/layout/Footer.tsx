@@ -3,8 +3,8 @@
 import React from 'react';
 import { FaLinkedinIn, FaTwitter, FaInstagram, FaFacebookF, FaApple, FaGooglePlay } from 'react-icons/fa';
 import { FiPhone, FiArrowUp } from 'react-icons/fi';
-import { MapPinIcon } from "@heroicons/react/24/solid";
 import Image from 'next/image';
+import { MapPinIcon } from 'lucide-react';
 
 const Footer: React.FC = () => {
   return (

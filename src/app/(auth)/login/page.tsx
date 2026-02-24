@@ -1,9 +1,10 @@
-"use client"
+"use client";
 
 import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline";
+import { FaEyeSlash } from "react-icons/fa";
+import { EyeIcon } from "lucide-react";
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
@@ -23,8 +24,14 @@ export default function LoginPage() {
       {/* Animated background elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-20 left-10 w-72 h-72 bg-primary-500/10 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute bottom-20 right-10 w-96 h-96 bg-primary-500/5 rounded-full blur-3xl animate-pulse" style={{ animationDelay: "1s" }}></div>
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-primary-500/5 rounded-full blur-3xl animate-pulse" style={{ animationDelay: "2s" }}></div>
+        <div
+          className="absolute bottom-20 right-10 w-96 h-96 bg-primary-500/5 rounded-full blur-3xl animate-pulse"
+          style={{ animationDelay: "1s" }}
+        ></div>
+        <div
+          className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-primary-500/5 rounded-full blur-3xl animate-pulse"
+          style={{ animationDelay: "2s" }}
+        ></div>
       </div>
 
       {/* Login Card */}
@@ -53,7 +60,10 @@ export default function LoginPage() {
         </div>
 
         {/* Logo */}
-        <div className="text-center mb-8 animate-fadeUp" style={{ animationDelay: "0.05s" }}>
+        <div
+          className="text-center mb-8 animate-fadeUp"
+          style={{ animationDelay: "0.05s" }}
+        >
           <Link href="/" className="inline-block">
             <Image
               src="/logo.png"
@@ -72,15 +82,15 @@ export default function LoginPage() {
         </div>
 
         {/* Form Card */}
-        <div 
+        <div
           className="bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl p-8 border border-white/20 animate-fadeUp"
           style={{ animationDelay: "0.15s" }}
         >
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Email Input */}
             <div className="space-y-2">
-              <label 
-                htmlFor="email" 
+              <label
+                htmlFor="email"
                 className="block text-sm font-semibold text-secondary-500 font-dmsans"
               >
                 Email Address
@@ -98,8 +108,8 @@ export default function LoginPage() {
 
             {/* Password Input */}
             <div className="space-y-2">
-              <label 
-                htmlFor="password" 
+              <label
+                htmlFor="password"
                 className="block text-sm font-semibold text-secondary-500 font-dmsans"
               >
                 Password
@@ -120,7 +130,7 @@ export default function LoginPage() {
                   className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-secondary-500 transition-colors"
                 >
                   {showPassword ? (
-                    <EyeSlashIcon className="w-5 h-5" />
+                    <FaEyeSlash className="w-5 h-5" />
                   ) : (
                     <EyeIcon className="w-5 h-5" />
                   )}
@@ -216,8 +226,12 @@ export default function LoginPage() {
               type="button"
               className="flex items-center justify-center gap-2 px-4 py-3 border-2 border-gray-200 rounded-xl hover:border-primary-500 hover:bg-primary-50 transition-all duration-300 group"
             >
-              <svg className="w-5 h-5 text-[#1877F2]" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+              <svg
+                className="w-5 h-5 text-[#1877F2]"
+                fill="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
               </svg>
               <span className="font-semibold text-gray-700 group-hover:text-primary-500 transition-colors font-dmsans">
                 Facebook
@@ -238,7 +252,10 @@ export default function LoginPage() {
         </div>
 
         {/* Footer */}
-        <p className="mt-8 text-center text-sm text-gray-300 font-dmsans animate-fadeUp" style={{ animationDelay: "0.25s" }}>
+        <p
+          className="mt-8 text-center text-sm text-gray-300 font-dmsans animate-fadeUp"
+          style={{ animationDelay: "0.25s" }}
+        >
           © 2024 BookMiz. All rights reserved.
         </p>
       </div>
