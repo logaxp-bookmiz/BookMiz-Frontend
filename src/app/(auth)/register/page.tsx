@@ -1,373 +1,825 @@
+"use client";
 
-"use client"
+import React, { useState } from "react";
+import {
+  Eye,
+  EyeOff,
+  User,
+  Mail,
+  Lock,
+  Phone,
+  ArrowRight,
+  Check,
+  Shield,
+  UserPlus,
+  ArrowLeft,
+} from "lucide-react";
+import { useRouter } from "next/navigation";
+import CountrySelector from "@/components/ui/CountrySelector";
+import { Country, defaultCountry } from "@/utils/countries";
 
-import { useState } from "react";
-import Link from "next/link";
-import Image from "next/image";
-import { EyeIcon, EyeSlashIcon, CheckCircleIcon } from "@heroicons/react/24/outline";
+const SignUpPage: React.FC = () => {
+  const router = useRouter();
+  const [selectedUserType, setSelectedUserType] = useState<string | null>(null);
+  const [isRegistering, setIsRegistering] = useState(false);
+  const [registerError, setRegisterError] = useState<Error | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [user, setUser] = useState(null);
 
-export default function RegisterPage() {
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  // Get selected user type from sessionStorage
+  React.useEffect(() => {
+    if (typeof window !== "undefined") {
+      const userType = sessionStorage.getItem("selectedUserType");
+      setSelectedUserType(userType);
+    }
+  }, []);
+
+  // Redirect authenticated users to dashboard (standard practice)
+  React.useEffect(() => {
+    if (isAuthenticated && user) {
+      router.replace("/profile/dashboard");
+    }
+  }, [isAuthenticated, user, router]);
+
   const [formData, setFormData] = useState({
-    fullName: "",
+    firstname: "",
+    lastname: "",
     email: "",
     password: "",
+    phoneNumber: "",
     confirmPassword: "",
   });
-  const [isLoading, setIsLoading] = useState(false);
-  const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [selectedCountry, setSelectedCountry] =
+    useState<Country>(defaultCountry);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [agreeToTerms, setAgreeToTerms] = useState(false);
+  // Add password validation states
+  const [passwordStrength, setPasswordStrength] = useState<
+    "weak" | "medium" | "strong" | null
+  >(null);
+  const [passwordsMatch, setPasswordsMatch] = useState<boolean | null>(null);
+  // Stepper for service providers
+  const isServiceProvider = selectedUserType === "service-provider";
+  const [currentStep, setCurrentStep] = useState<1 | 2>(1);
+  const isStep2 = isServiceProvider && currentStep === 2;
+  const [businessData, setBusinessData] = useState({
+    name: "",
+    about: "",
+    address: "",
+    city: "",
+    state: "",
+    country: "",
+    currencyCode: "",
+  });
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    // Add your registration logic here
-    setTimeout(() => setIsLoading(false), 2000);
-  };
+  React.useEffect(() => {
+    if (typeof window !== "undefined" && isServiceProvider) {
+      const draft = sessionStorage.getItem("registrationBusinessDraft");
+      if (draft) {
+        try {
+          const parsed = JSON.parse(draft);
+          setBusinessData((prev) => ({ ...prev, ...parsed }));
+        } catch (_) {}
+      }
+    }
+  }, [isServiceProvider]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
+  const handleBusinessChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
+    const { name, value } = e.target;
+    setBusinessData((prev) => {
+      const next = { ...prev, [name]: value };
+      if (typeof window !== "undefined") {
+        sessionStorage.setItem(
+          "registrationBusinessDraft",
+          JSON.stringify(next)
+        );
+      }
+      return next;
     });
   };
 
-  // Password strength checker
-  const getPasswordStrength = (password: string) => {
-    if (!password) return { strength: 0, label: "", color: "" };
-    
-    let strength = 0;
-    if (password.length >= 8) strength++;
-    if (/[a-z]/.test(password) && /[A-Z]/.test(password)) strength++;
-    if (/[0-9]/.test(password)) strength++;
-    if (/[^a-zA-Z0-9]/.test(password)) strength++;
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
 
-    const labels = ["Weak", "Fair", "Good", "Strong"];
-    const colors = ["bg-red-500", "bg-orange-500", "bg-yellow-500", "bg-green-500"];
-    
-    return {
-      strength,
-      label: labels[strength - 1] || "",
-      color: colors[strength - 1] || "",
-    };
+    // For phone number, normalize by removing leading zeros for storage
+    let normalizedValue = value;
+    if (name === "phoneNumber" && value.startsWith("0")) {
+      normalizedValue = value.substring(1);
+    }
+
+    setFormData((prev) => ({
+      ...prev,
+      [name]: normalizedValue,
+    }));
+
+    // Check password strength when password changes
+    if (name === "password") {
+      const strength = checkPasswordStrength(normalizedValue);
+      setPasswordStrength(strength);
+    }
+
+    // Check if passwords match when either password field changes
+    if (name === "password" || name === "confirmPassword") {
+      const currentPassword =
+        name === "password" ? normalizedValue : formData.password;
+      const currentConfirmPassword =
+        name === "confirmPassword" ? normalizedValue : formData.confirmPassword;
+
+      if (currentPassword && currentConfirmPassword) {
+        setPasswordsMatch(currentPassword === currentConfirmPassword);
+      } else {
+        setPasswordsMatch(null);
+      }
+    }
   };
 
-  const passwordStrength = getPasswordStrength(formData.password);
+  const handleCountryChange = (country: Country) => {
+    setSelectedCountry(country);
+  };
+
+  const getFullPhoneNumber = () => {
+    // Ensure we don't show leading zeros in the preview
+    const normalizedPhone = formData.phoneNumber.startsWith("0")
+      ? formData.phoneNumber.substring(1)
+      : formData.phoneNumber;
+    return selectedCountry.dialCode + normalizedPhone;
+  };
+
+  const checkPasswordStrength = (
+    password: string
+  ): "weak" | "medium" | "strong" | null => {
+    if (!password) return null;
+    if (password.length < 6) return "weak";
+    if (password.length < 10) return "medium";
+    return "strong";
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!agreeToTerms) {
+      alert("Please agree to the terms and conditions");
+      return;
+    }
+
+    if (!formData.password || !formData.confirmPassword) {
+      alert("Please fill in both password fields");
+      return;
+    }
+
+    if (formData.password !== formData.confirmPassword) {
+      alert("Passwords do not match");
+      return;
+    }
+
+    if (passwordStrength === "weak") {
+      alert("Password is too weak. Please choose a stronger password.");
+      return;
+    }
+
+    if (isServiceProvider && currentStep === 1) {
+      setCurrentStep(2);
+      return;
+    }
+
+    if (isServiceProvider && currentStep === 2) {
+      if (!businessData.name) {
+        alert("Please enter your business name");
+        return;
+      }
+    }
+
+    try {
+      setIsRegistering(true);
+      setRegisterError(null);
+      
+      const { confirmPassword, phoneNumber, ...dataForBackend } = formData;
+      // Add the full phone number with country code
+      let payload: any = {
+        ...dataForBackend,
+        phoneNumber: getFullPhoneNumber(),
+      };
+
+      // If service provider, include business payload
+      if (isServiceProvider) {
+        const business = {
+          name: businessData.name || "",
+          about: businessData.about || "",
+          address: businessData.address || "",
+          city: businessData.city || "",
+          state: businessData.state || "",
+          country: businessData.country || "",
+          currencyCode: businessData.currencyCode || "",
+        };
+        if (business.name) {
+          payload = { ...payload, business: [business] };
+        }
+      }
+
+      // Simulate successful registration
+      console.log("Registration payload:", payload);
+      
+      // Mock successful registration
+      setTimeout(() => {
+        setIsAuthenticated(true);
+        setUser({ email: formData.email, firstname: formData.firstname });
+        router.push("/auth/login");
+      }, 1000);
+      
+    } catch (error) {
+      setRegisterError(error as Error);
+      setIsRegistering(false);
+    }
+  };
+
+  const benefits = [
+    "Book appointments 24/7",
+    "Instant confirmation",
+    "Manage your bookings",
+    "Exclusive member discounts",
+  ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-secondary-500 via-secondary-600 to-secondary-800 flex items-center justify-center p-4 relative overflow-hidden">
-      {/* Animated background elements */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-20 left-10 w-72 h-72 bg-primary-500/10 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute bottom-20 right-10 w-96 h-96 bg-primary-500/5 rounded-full blur-3xl animate-pulse" style={{ animationDelay: "1s" }}></div>
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-primary-500/5 rounded-full blur-3xl animate-pulse" style={{ animationDelay: "2s" }}></div>
-      </div>
+    <div className="flex flex-col lg:flex-row min-h-screen">
+      {/* Left Side - Benefits - Hidden on Mobile */}
+      {!isStep2 && (
+        <div className="hidden lg:block lg:w-1/2 relative p-6 lg:p-8 text-white overflow-hidden">
+          <div
+            className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+            style={{
+              backgroundImage:
+                "url('https://images.unsplash.com/photo-1560066984-138dadb4c035?w=800&h=1200&fit=crop')",
+            }}
+          />
+          <div className="absolute inset-0 bg-gradient-to-br from-secondary-500/90 to-secondary-500/95" />
 
-      {/* Register Card */}
-      <div className="w-full max-w-md relative z-10 py-8">
-        {/* Back Button */}
-        <div className="mb-6 animate-fadeUp">
-          <Link
-            href="/"
-            className="inline-flex items-center gap-2 text-white hover:text-primary-500 transition-colors group"
-          >
-            <svg
-              className="w-5 h-5 transition-transform group-hover:-translate-x-1"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M10 19l-7-7m0 0l7-7m-7 7h18"
-              />
-            </svg>
-            <span className="font-semibold font-dmsans">Back to Home</span>
-          </Link>
-        </div>
-
-        {/* Logo */}
-        <div className="text-center mb-8 animate-fadeUp" style={{ animationDelay: "0.05s" }}>
-          <Link href="/" className="inline-block">
-            <Image
-              src="/logo.png"
-              alt="Logo"
-              width={150}
-              height={40}
-              className="mx-auto mb-4"
-            />
-          </Link>
-          <h1 className="text-3xl font-bold text-white font-montserrat mb-2">
-            Create Account
-          </h1>
-          <p className="text-gray-300 font-dmsans">
-            Join us and start your journey today
-          </p>
-        </div>
-
-        {/* Form Card */}
-        <div 
-          className="bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl p-8 border border-white/20 animate-fadeUp"
-          style={{ animationDelay: "0.15s" }}
-        >
-          <form onSubmit={handleSubmit} className="space-y-5">
-            {/* Full Name Input */}
-            <div className="space-y-2">
-              <label 
-                htmlFor="fullName" 
-                className="block text-sm font-semibold text-secondary-500 font-dmsans"
-              >
-                Full Name
-              </label>
-              <input
-                id="fullName"
-                name="fullName"
-                type="text"
-                value={formData.fullName}
-                onChange={handleChange}
-                placeholder="John Doe"
-                required
-                className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-primary-500 focus:ring-4 focus:ring-primary-500/20 outline-none transition-all duration-300 font-dmsans placeholder:text-gray-400"
-              />
+          <div className="relative z-10 h-full flex flex-col justify-center items-center text-center max-w-md mx-auto">
+            <div className="mb-6">
+              <h1 className="text-3xl lg:text-4xl font-bold mb-3 text-white drop-shadow-lg tracking-tight">
+                Join BookMiz
+              </h1>
+              <p className="text-white/90 text-lg font-light leading-relaxed">
+                Your gateway to premium services and seamless booking
+                experiences
+              </p>
             </div>
 
-            {/* Email Input */}
-            <div className="space-y-2">
-              <label 
-                htmlFor="email" 
-                className="block text-sm font-semibold text-secondary-500 font-dmsans"
-              >
-                Email Address
-              </label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                value={formData.email}
-                onChange={handleChange}
-                placeholder="you@example.com"
-                required
-                className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-primary-500 focus:ring-4 focus:ring-primary-500/20 outline-none transition-all duration-300 font-dmsans placeholder:text-gray-400"
-              />
-            </div>
-
-            {/* Password Input */}
-            <div className="space-y-2">
-              <label 
-                htmlFor="password" 
-                className="block text-sm font-semibold text-secondary-500 font-dmsans"
-              >
-                Password
-              </label>
-              <div className="relative">
-                <input
-                  id="password"
-                  name="password"
-                  type={showPassword ? "text" : "password"}
-                  value={formData.password}
-                  onChange={handleChange}
-                  placeholder="Create a strong password"
-                  required
-                  className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-primary-500 focus:ring-4 focus:ring-primary-500/20 outline-none transition-all duration-300 font-dmsans placeholder:text-gray-400 pr-12"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-secondary-500 transition-colors"
-                >
-                  {showPassword ? (
-                    <EyeSlashIcon className="w-5 h-5" />
-                  ) : (
-                    <EyeIcon className="w-5 h-5" />
-                  )}
-                </button>
-              </div>
-              
-              {/* Password Strength Indicator */}
-              {formData.password && (
-                <div className="space-y-2">
-                  <div className="flex gap-1">
-                    {[1, 2, 3, 4].map((level) => (
-                      <div
-                        key={level}
-                        className={`h-1 flex-1 rounded-full transition-all duration-300 ${
-                          level <= passwordStrength.strength
-                            ? passwordStrength.color
-                            : "bg-gray-200"
-                        }`}
-                      />
-                    ))}
+            <div className="space-y-3 mb-6 w-full">
+              {benefits.map((benefit, index) => (
+                <div key={index} className="flex items-center space-x-4 group">
+                  <div className="flex-shrink-0 w-8 h-8 bg-primary-500 rounded-full flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
+                    <Check className="w-5 h-5 text-white font-bold" />
                   </div>
-                  {passwordStrength.label && (
-                    <p className="text-xs font-medium font-dmsans text-gray-600">
-                      Password strength: {passwordStrength.label}
-                    </p>
-                  )}
+                  <span className="text-white text-base font-medium group-hover:text-primary-500 transition-colors duration-300">
+                    {benefit}
+                  </span>
                 </div>
-              )}
+              ))}
             </div>
 
-            {/* Confirm Password Input */}
-            <div className="space-y-2">
-              <label 
-                htmlFor="confirmPassword" 
-                className="block text-sm font-semibold text-secondary-500 font-dmsans"
-              >
-                Confirm Password
-              </label>
-              <div className="relative">
+            <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20 shadow-2xl w-full">
+              <div className="flex items-center space-x-4">
+                <div className="p-3 bg-primary-500/20 rounded-full">
+                  <Shield className="w-8 h-8 text-primary-500" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-lg text-white mb-1">
+                    Start Booking Today
+                  </h3>
+                  <p className="text-primary-500 text-sm font-medium">
+                    Over 1000+ services available
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Right Side - Sign Up Form */}
+      <div
+        className={`w-full ${
+          isStep2 ? "lg:w-full" : "lg:w-1/2"
+        } px-6 py-4 sm:p-6 lg:p-12 bg-gray-50 flex items-center justify-center min-h-screen lg:min-h-0`}
+      >
+        <div className={`w-full ${isStep2 ? "max-w-3xl" : "max-w-2xl"}`}>
+          {/* Back Button and User Type Display */}
+          <div className="mb-4 sm:mb-6">
+            <button
+              onClick={() => router.push("/auth/login-type-selection")}
+              className="inline-flex items-center text-gray-600 hover:text-primary-500 transition-colors duration-300 group"
+            >
+              <ArrowLeft className="w-4 h-4 mr-2 group-hover:-translate-x-1 transition-transform duration-300" />
+              <span className="text-sm font-medium">Back to Selection</span>
+            </button>
+          </div>
+
+          <div className="text-center mb-6 sm:mb-8 lg:mb-10">
+            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-2 sm:mb-3 tracking-tight">
+              Create Account
+            </h2>
+            {selectedUserType && (
+              <div className="mb-3">
+                <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-primary-100 text-primary-800">
+                  {selectedUserType === "customer"
+                    ? "Customer"
+                    : "Service Provider"}
+                </span>
+              </div>
+            )}
+            <p className="text-gray-600 text-base sm:text-lg font-light">
+              Fill in your details to get started with BookMiz
+            </p>
+            {isServiceProvider && (
+              <div className="mt-4 flex items-center justify-center gap-2 text-sm">
+                <div
+                  className={`h-1.5 w-20 rounded-full ${
+                    currentStep === 1 ? "bg-primary-500" : "bg-primary-200"
+                  }`}
+                ></div>
+                <div
+                  className={`h-1.5 w-20 rounded-full ${
+                    currentStep === 2 ? "bg-primary-500" : "bg-primary-200"
+                  }`}
+                ></div>
+              </div>
+            )}
+          </div>
+
+          <div className="space-y-4 sm:space-y-6">
+            {/* Error Display */}
+            {registerError && (
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm shadow-sm">
+                {registerError.message}
+              </div>
+            )}
+
+            {/* Step 1: Personal Info */}
+            {(!isServiceProvider || currentStep === 1) && (
+              <>
+                {/* Name Fields */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label
+                      htmlFor="firstname"
+                      className="block text-sm font-semibold text-gray-800 mb-2 sm:mb-3"
+                    >
+                      First Name
+                    </label>
+                    <div className="relative">
+                      <User className="absolute left-3 sm:left-4 top-1/2 transform -translate-y-1/2 w-4 sm:w-5 h-4 sm:h-5 text-gray-400" />
+                      <input
+                        type="text"
+                        id="firstname"
+                        name="firstname"
+                        value={formData.firstname}
+                        onChange={handleInputChange}
+                        className="w-full pl-10 sm:pl-12 pr-4 py-2.5 sm:py-3 border border-gray-200 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-300 hover:border-gray-300 text-xs sm:text-sm bg-white shadow-sm"
+                        placeholder="John"
+                        required
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="lastname"
+                      className="block text-sm font-semibold text-gray-800 mb-2 sm:mb-3"
+                    >
+                      Last Name
+                    </label>
+                    <div className="relative">
+                      <User className="absolute left-3 sm:left-4 top-1/2 transform -translate-y-1/2 w-4 sm:w-5 h-4 sm:h-5 text-gray-400" />
+                      <input
+                        type="text"
+                        id="lastname"
+                        name="lastname"
+                        value={formData.lastname}
+                        onChange={handleInputChange}
+                        className="w-full pl-10 sm:pl-12 pr-4 py-2.5 sm:py-3 border border-gray-200 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-300 hover:border-gray-300 text-xs sm:text-sm bg-white shadow-sm"
+                        placeholder="Doe"
+                        required
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Email & Phone */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label
+                      htmlFor="email"
+                      className="block text-sm font-semibold text-gray-800 mb-2 sm:mb-3"
+                    >
+                      Email
+                    </label>
+                    <div className="relative">
+                      <Mail className="absolute left-3 sm:left-4 top-1/2 transform -translate-y-1/2 w-4 sm:w-5 h-4 sm:h-5 text-gray-400" />
+                      <input
+                        type="email"
+                        id="email"
+                        name="email"
+                        value={formData.email}
+                        onChange={handleInputChange}
+                        className="w-full pl-10 sm:pl-12 pr-4 py-2.5 sm:py-3 border border-gray-200 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-300 hover:border-gray-300 text-xs sm:text-sm bg-white shadow-sm"
+                        placeholder="john@example.com"
+                        required
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="phoneNumber"
+                      className="block text-sm font-semibold text-gray-800 mb-2 sm:mb-3"
+                    >
+                      Phone
+                    </label>
+                    <div className="flex space-x-2 sm:space-x-3">
+                      <div className="w-24 sm:w-32">
+                        <CountrySelector
+                          selectedCountry={selectedCountry}
+                          onCountryChange={handleCountryChange}
+                        />
+                      </div>
+                      <div className="flex-1 relative">
+                        <Phone className="absolute left-3 sm:left-4 top-1/2 transform -translate-y-1/2 w-4 sm:w-5 h-4 sm:h-5 text-gray-400" />
+                        <input
+                          type="tel"
+                          id="phoneNumber"
+                          name="phoneNumber"
+                          value={formData.phoneNumber}
+                          onChange={handleInputChange}
+                          className="w-full pl-10 sm:pl-12 pr-4 py-2.5 sm:py-3 border border-gray-200 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-300 hover:border-gray-300 text-xs sm:text-sm bg-white shadow-sm"
+                          placeholder="8094848473"
+                          required
+                        />
+                      </div>
+                    </div>
+                    <div className="mt-1 sm:mt-2 text-xs text-gray-500">
+                      Full number: {getFullPhoneNumber()}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Password Fields */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label
+                      htmlFor="password"
+                      className="block text-sm font-semibold text-gray-800 mb-2 sm:mb-3"
+                    >
+                      Password
+                    </label>
+                    <div className="relative">
+                      <Lock className="absolute left-3 sm:left-4 top-1/2 transform -translate-y-1/2 w-4 sm:w-5 h-4 sm:h-5 text-gray-400" />
+                      <input
+                        type={showPassword ? "text" : "password"}
+                        id="password"
+                        name="password"
+                        value={formData.password}
+                        onChange={handleInputChange}
+                        className="w-full pl-10 sm:pl-12 pr-10 sm:pr-12 py-2.5 sm:py-3 border border-gray-200 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-300 hover:border-gray-300 text-xs sm:text-sm bg-white shadow-sm"
+                        placeholder="••••••••"
+                        required
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 sm:right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors duration-300"
+                      >
+                        {showPassword ? (
+                          <EyeOff className="w-4 sm:w-5 h-4 sm:h-5" />
+                        ) : (
+                          <Eye className="w-4 sm:w-5 h-4 sm:h-5" />
+                        )}
+                      </button>
+                    </div>
+                    {/* Compact Password Strength */}
+                    {formData.password && (
+                      <div className="mt-1 flex items-center space-x-1">
+                        <span className="text-xs text-gray-500">Strength:</span>
+                        <div className="flex space-x-1">
+                          <div
+                            className={`h-1.5 w-6 rounded-full ${
+                              passwordStrength === "weak"
+                                ? "bg-red-400"
+                                : passwordStrength === "medium"
+                                ? "bg-yellow-400"
+                                : passwordStrength === "strong"
+                                ? "bg-green-400"
+                                : "bg-gray-200"
+                            }`}
+                          ></div>
+                          <div
+                            className={`h-1.5 w-6 rounded-full ${
+                              passwordStrength === "medium"
+                                ? "bg-yellow-400"
+                                : passwordStrength === "strong"
+                                ? "bg-green-400"
+                                : "bg-gray-200"
+                            }`}
+                          ></div>
+                          <div
+                            className={`h-1.5 w-6 rounded-full ${
+                              passwordStrength === "strong"
+                                ? "bg-green-400"
+                                : "bg-gray-200"
+                            }`}
+                          ></div>
+                        </div>
+                        <span
+                          className={`text-xs font-medium ${
+                            passwordStrength === "weak"
+                              ? "text-red-600"
+                              : passwordStrength === "medium"
+                              ? "text-yellow-600"
+                              : passwordStrength === "strong"
+                              ? "text-green-600"
+                              : "text-gray-500"
+                          }`}
+                        >
+                          {passwordStrength}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div>
+                    <label
+                      htmlFor="confirmPassword"
+                      className="block text-sm font-semibold text-gray-800 mb-2 sm:mb-3"
+                    >
+                      Confirm
+                    </label>
+                    <div className="relative">
+                      <Lock className="absolute left-3 sm:left-4 top-1/2 transform -translate-y-1/2 w-4 sm:w-5 h-4 sm:h-5 text-gray-400" />
+                      <input
+                        type={showConfirmPassword ? "text" : "password"}
+                        id="confirmPassword"
+                        name="confirmPassword"
+                        value={formData.confirmPassword}
+                        onChange={handleInputChange}
+                        className="w-full pl-10 sm:pl-12 pr-10 sm:pr-12 py-2.5 sm:py-3 border border-gray-200 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-300 hover:border-gray-300 text-xs sm:text-sm bg-white shadow-sm"
+                        placeholder="••••••••"
+                        required
+                      />
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setShowConfirmPassword(!showConfirmPassword)
+                        }
+                        className="absolute right-3 sm:right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors duration-300"
+                      >
+                        {showConfirmPassword ? (
+                          <EyeOff className="w-4 sm:w-5 h-4 sm:h-5" />
+                        ) : (
+                          <Eye className="w-4 sm:w-5 h-4 sm:h-5" />
+                        )}
+                      </button>
+                    </div>
+                    {/* Compact Password Match */}
+                    {formData.confirmPassword && (
+                      <div className="mt-2">
+                        {passwordsMatch === true ? (
+                          <div className="flex items-center space-x-2 text-green-600">
+                            <div className="w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
+                              <Check className="w-3 h-3 text-white" />
+                            </div>
+                            <span className="text-xs font-medium">Match</span>
+                          </div>
+                        ) : passwordsMatch === false ? (
+                          <div className="flex items-center space-x-2 text-red-600">
+                            <div className="w-4 h-4 bg-red-500 rounded-full flex items-center justify-center">
+                              <span className="text-white text-xs font-bold">
+                                ×
+                              </span>
+                            </div>
+                            <span className="text-xs font-medium">
+                              No match
+                            </span>
+                          </div>
+                        ) : null}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* Step 2: Business Details (service providers) */}
+            {isServiceProvider && currentStep === 2 && (
+              <>
+                <div className="grid grid-cols-1 gap-4">
+                  <div>
+                    <label
+                      htmlFor="name"
+                      className="block text-sm font-semibold text-gray-800 mb-2"
+                    >
+                      Business Name
+                    </label>
+                    <input
+                      id="name"
+                      name="name"
+                      value={businessData.name}
+                      onChange={handleBusinessChange}
+                      className="w-full px-4 py-2.5 sm:py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-300 bg-white shadow-sm text-xs sm:text-sm"
+                      placeholder="e.g. Prime Cuts Barbers"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="about"
+                      className="block text-sm font-semibold text-gray-800 mb-2"
+                    >
+                      About
+                    </label>
+                    <textarea
+                      id="about"
+                      name="about"
+                      value={businessData.about}
+                      onChange={handleBusinessChange}
+                      rows={4}
+                      className="w-full px-4 py-2.5 sm:py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-300 bg-white shadow-sm text-xs sm:text-sm"
+                      placeholder="Brief description of your business"
+                    />
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label
+                        htmlFor="address"
+                        className="block text-sm font-semibold text-gray-800 mb-2"
+                      >
+                        Address
+                      </label>
+                      <input
+                        id="address"
+                        name="address"
+                        value={businessData.address}
+                        onChange={handleBusinessChange}
+                        className="w-full px-4 py-2.5 sm:py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-300 bg-white shadow-sm text-xs sm:text-sm"
+                        placeholder="123 Main St"
+                      />
+                    </div>
+                    <div>
+                      <label
+                        htmlFor="city"
+                        className="block text-sm font-semibold text-gray-800 mb-2"
+                      >
+                        City
+                      </label>
+                      <input
+                        id="city"
+                        name="city"
+                        value={businessData.city}
+                        onChange={handleBusinessChange}
+                        className="w-full px-4 py-2.5 sm:py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-300 bg-white shadow-sm text-xs sm:text-sm"
+                        placeholder="Lagos"
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label
+                        htmlFor="state"
+                        className="block text-sm font-semibold text-gray-800 mb-2"
+                      >
+                        State
+                      </label>
+                      <input
+                        id="state"
+                        name="state"
+                        value={businessData.state}
+                        onChange={handleBusinessChange}
+                        className="w-full px-4 py-2.5 sm:py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-300 bg-white shadow-sm text-xs sm:text-sm"
+                        placeholder="Lagos"
+                      />
+                    </div>
+                    <div>
+                      <label
+                        htmlFor="country"
+                        className="block text-sm font-semibold text-gray-800 mb-2"
+                      >
+                        Country
+                      </label>
+                      <input
+                        id="country"
+                        name="country"
+                        value={businessData.country}
+                        onChange={handleBusinessChange}
+                        className="w-full px-4 py-2.5 sm:py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-300 bg-white shadow-sm text-xs sm:text-sm"
+                        placeholder="Nigeria"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="currencyCode"
+                      className="block text-sm font-semibold text-gray-800 mb-2"
+                    >
+                      Currency Code
+                    </label>
+                    <input
+                      id="currencyCode"
+                      name="currencyCode"
+                      value={businessData.currencyCode}
+                      onChange={handleBusinessChange}
+                      className="w-full px-4 py-2.5 sm:py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-300 bg-white shadow-sm text-xs sm:text-sm"
+                      placeholder="NGN, USD..."
+                    />
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* Terms and Submit */}
+            <div className="space-y-4 sm:space-y-6">
+              <div className="flex items-start space-x-2 sm:space-x-3">
                 <input
-                  id="confirmPassword"
-                  name="confirmPassword"
-                  type={showConfirmPassword ? "text" : "password"}
-                  value={formData.confirmPassword}
-                  onChange={handleChange}
-                  placeholder="Re-enter your password"
-                  required
-                  className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-primary-500 focus:ring-4 focus:ring-primary-500/20 outline-none transition-all duration-300 font-dmsans placeholder:text-gray-400 pr-12"
+                  type="checkbox"
+                  id="terms"
+                  checked={agreeToTerms}
+                  onChange={(e) => setAgreeToTerms(e.target.checked)}
+                  className="mt-1 w-4 sm:w-5 h-4 sm:h-5 text-primary-500 border-gray-300 rounded-md focus:ring-primary-500"
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-secondary-500 transition-colors"
+                <label
+                  htmlFor="terms"
+                  className="text-xs sm:text-sm text-gray-700 leading-relaxed cursor-pointer"
                 >
-                  {showConfirmPassword ? (
-                    <EyeSlashIcon className="w-5 h-5" />
+                  I agree to the{" "}
+                  <a
+                    href="#"
+                    className="text-primary-500 hover:text-primary-600 underline font-semibold transition-colors duration-300"
+                  >
+                    Terms
+                  </a>{" "}
+                  and{" "}
+                  <a
+                    href="#"
+                    className="text-primary-500 hover:text-primary-600 underline font-semibold transition-colors duration-300"
+                  >
+                    Privacy Policy
+                  </a>
+                </label>
+              </div>
+
+              <div className="flex gap-3 mt-6 sm:mt-8">
+                {isServiceProvider && currentStep === 2 && (
+                  <button
+                    type="button"
+                    onClick={() => setCurrentStep(1)}
+                    className="w-1/2 bg-white text-gray-700 py-2.5 sm:py-3 px-3 sm:px-4 rounded-lg sm:rounded-xl font-bold text-sm sm:text-base border border-gray-200 hover:bg-gray-50 transition-all duration-300 shadow-sm"
+                  >
+                    Back
+                  </button>
+                )}
+                <button
+                  type="submit"
+                  onClick={handleSubmit}
+                  disabled={
+                    isRegistering ||
+                    !agreeToTerms ||
+                    !formData.password ||
+                    !formData.confirmPassword ||
+                    passwordsMatch === false ||
+                    passwordStrength === "weak"
+                  }
+                  className="flex-1 bg-primary-500 text-white py-2.5 sm:py-3 px-3 sm:px-4 rounded-lg sm:rounded-xl font-bold text-sm sm:text-base hover:bg-primary-600 focus:ring-2 focus:ring-primary-200 transition-all duration-300 flex items-center justify-center space-x-2 sm:space-x-3 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl hover:scale-105 transform"
+                >
+                  {isRegistering ? (
+                    <div className="w-5 sm:w-6 h-5 sm:h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
                   ) : (
-                    <EyeIcon className="w-5 h-5" />
+                    <>
+                      <span>
+                        {isServiceProvider && currentStep === 1
+                          ? "Continue"
+                          : "Create Account"}
+                      </span>
+                      <ArrowRight className="w-4 sm:w-5 h-4 sm:h-5" />
+                    </>
                   )}
                 </button>
               </div>
-              {formData.confirmPassword && formData.password !== formData.confirmPassword && (
-                <p className="text-xs text-red-500 font-dmsans flex items-center gap-1">
-                  <span>⚠️</span> Passwords do not match
+
+              <div className="text-center pt-2 sm:pt-3">
+                <p className="text-xs sm:text-sm text-gray-600">
+                  Already have an account?{" "}
+                  <a
+                    href="/auth/login"
+                    className="text-primary-500 hover:text-primary-600 font-semibold transition-colors duration-300"
+                  >
+                    Sign In
+                  </a>
                 </p>
-              )}
-              {formData.confirmPassword && formData.password === formData.confirmPassword && (
-                <p className="text-xs text-green-500 font-dmsans flex items-center gap-1">
-                  <CheckCircleIcon className="w-4 h-4" /> Passwords match
-                </p>
-              )}
-            </div>
-
-            {/* Terms & Conditions */}
-            <label className="flex items-start gap-3 cursor-pointer group">
-              <input
-                type="checkbox"
-                checked={agreedToTerms}
-                onChange={(e) => setAgreedToTerms(e.target.checked)}
-                required
-                className="w-4 h-4 mt-1 rounded border-2 border-gray-300 text-primary-500 focus:ring-2 focus:ring-primary-500/20 cursor-pointer flex-shrink-0"
-              />
-              <span className="text-sm text-gray-600 group-hover:text-secondary-500 transition-colors font-dmsans">
-                I agree to the{" "}
-                <Link href="/terms" className="font-semibold text-primary-500 hover:text-primary-600">
-                  Terms of Service
-                </Link>{" "}
-                and{" "}
-                <Link href="/privacy" className="font-semibold text-primary-500 hover:text-primary-600">
-                  Privacy Policy
-                </Link>
-              </span>
-            </label>
-
-            {/* Submit Button */}
-            <button
-              type="submit"
-              disabled={isLoading || !agreedToTerms || formData.password !== formData.confirmPassword}
-              className="w-full bg-gradient-to-r from-primary-500 to-primary-600 text-white font-bold py-3.5 rounded-xl shadow-lg hover:shadow-xl transform hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed font-montserrat text-lg relative overflow-hidden group"
-            >
-              <span className="relative z-10">
-                {isLoading ? (
-                  <div className="flex items-center justify-center gap-2">
-                    <div className="w-5 h-5 border-3 border-white/30 border-t-white rounded-full animate-spin"></div>
-                    Creating account...
-                  </div>
-                ) : (
-                  "Create Account"
-                )}
-              </span>
-              <div className="absolute inset-0 bg-gradient-to-r from-primary-600 to-primary-700 transform scale-x-0 group-hover:scale-x-100 transition-transform origin-left duration-300"></div>
-            </button>
-          </form>
-
-          {/* Divider */}
-          <div className="relative my-6">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-200"></div>
-            </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="px-4 bg-white text-gray-500 font-dmsans">
-                Or sign up with
-              </span>
+              </div>
             </div>
           </div>
-
-          {/* Social Sign Up */}
-          <div className="grid grid-cols-2 gap-4">
-            <button
-              type="button"
-              className="flex items-center justify-center gap-2 px-4 py-3 border-2 border-gray-200 rounded-xl hover:border-primary-500 hover:bg-primary-50 transition-all duration-300 group"
-            >
-              <svg className="w-5 h-5" viewBox="0 0 24 24">
-                <path
-                  fill="currentColor"
-                  d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                  className="text-[#4285F4]"
-                />
-                <path
-                  fill="currentColor"
-                  d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                  className="text-[#34A853]"
-                />
-                <path
-                  fill="currentColor"
-                  d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-                  className="text-[#FBBC05]"
-                />
-                <path
-                  fill="currentColor"
-                  d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                  className="text-[#EA4335]"
-                />
-              </svg>
-              <span className="font-semibold text-gray-700 group-hover:text-primary-500 transition-colors font-dmsans">
-                Google
-              </span>
-            </button>
-
-            <button
-              type="button"
-              className="flex items-center justify-center gap-2 px-4 py-3 border-2 border-gray-200 rounded-xl hover:border-primary-500 hover:bg-primary-50 transition-all duration-300 group"
-            >
-              <svg className="w-5 h-5 text-[#1877F2]" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-              </svg>
-              <span className="font-semibold text-gray-700 group-hover:text-primary-500 transition-colors font-dmsans">
-                Facebook
-              </span>
-            </button>
-          </div>
-
-          {/* Sign In Link */}
-          <p className="mt-6 text-center text-sm text-gray-600 font-dmsans">
-            Already have an account?{" "}
-            <Link
-              href="/login"
-              className="font-bold text-primary-500 hover:text-primary-600 transition-colors"
-            >
-              Sign in
-            </Link>
-          </p>
         </div>
-
-        {/* Footer */}
-        <p className="mt-8 text-center text-sm text-gray-300 font-dmsans animate-fadeUp" style={{ animationDelay: "0.25s" }}>
-          © 2024 BookMiz. All rights reserved.
-        </p>
       </div>
     </div>
   );
-}
+};
+
+export default SignUpPage;

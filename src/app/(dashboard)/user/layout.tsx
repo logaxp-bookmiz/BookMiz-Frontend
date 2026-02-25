@@ -113,7 +113,7 @@ const UserSidebarLayout = ({ children }: { children: React.ReactNode }) => {
     { icon: <FiBookmark />, label: "Bookmarks", path: "/user/bookmarks" },
     { icon: <FiCalendar />, label: "Appointments", path: "/user/appointments" },
     { icon: <FiClock />, label: "Appointments History", path: "/user/appointments-history" },
-      { icon: <FiUsers />, label: "Create Business", path: "/user/create-business" },
+    { icon: <FiUsers />, label: "Create Business", path: "/user/create-business" },
   ];
 
   return (
@@ -156,25 +156,38 @@ const UserSidebarLayout = ({ children }: { children: React.ReactNode }) => {
           } md:translate-x-0 transition-transform duration-300 bg-white/95 backdrop-blur-md p-6 border-r border-gray-200/50 shadow-xl w-64 md:sticky md:top-0 md:h-screen z-40 flex flex-col`}
         >
           {/* Sidebar Header */}
-          <div className="flex items-center justify-between mb-8 pb-4 border-b border-gray-200/50">
-            <div className="flex items-center space-x-3 text-gray-800">
-              <div className="w-8 h-8 bg-primary-500 rounded-lg flex items-center justify-center">
-                <FiUser className="text-white text-sm" />
-              </div>
-              <div>
-                <p className="text-sm font-bold text-gray-900">
-                  {STATIC_USER.firstname} {STATIC_USER.lastname}
-                </p>
-                <p className="text-xs text-gray-500">{STATIC_USER.email}</p>
-              </div>
-            </div>
+          <div className="mb-8 pb-4 border-b border-gray-200/50">
+            {/* Return to Home arrow */}
             <button
               type="button"
-              className="text-gray-500 hover:text-gray-700 md:hidden transition-colors"
-              onClick={() => setIsSidebarOpen(false)}
+              onClick={() => handleNavigation("/")}
+              className="flex items-center space-x-2 text-gray-400 hover:text-primary-600 transition-colors duration-300 mb-4 group"
+              aria-label="Return to Home"
             >
-              <FiX className="text-xl" />
+              <FiArrowLeft className="text-lg group-hover:-translate-x-1 transition-transform duration-300" />
+              <span className="text-xs font-medium">Home</span>
             </button>
+
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3 text-gray-800">
+                <div className="w-8 h-8 bg-primary-500 rounded-lg flex items-center justify-center">
+                  <FiUser className="text-white text-sm" />
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-gray-900">
+                    {STATIC_USER.firstname} {STATIC_USER.lastname}
+                  </p>
+                  <p className="text-xs text-gray-500">{STATIC_USER.email}</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                className="text-gray-500 hover:text-gray-700 md:hidden transition-colors"
+                onClick={() => setIsSidebarOpen(false)}
+              >
+                <FiX className="text-xl" />
+              </button>
+            </div>
           </div>
 
           {/* Navigation */}
@@ -193,33 +206,6 @@ const UserSidebarLayout = ({ children }: { children: React.ReactNode }) => {
           {/* Bottom Section */}
           <div className="mt-6 pt-6 space-y-3 border-t border-gray-200/50">
             <SectionHeader title="Account" />
-
-            {/* Service Provider Switch (only shown when user has a businessId) */}
-            {/* {STATIC_USER.businessId && (
-              <div className="bg-gradient-to-r from-primary-50 to-primary-100 border border-primary-200/50 rounded-xl p-4 shadow-sm">
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-sm font-semibold text-gray-700">Switch Mode</span>
-                  <span className="text-xs text-green-700 bg-green-100 px-2 py-1 rounded-full font-medium">
-                    Available
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => handleNavigation("/service-pro")}
-                  className="w-full flex items-center justify-between p-3 bg-white rounded-xl border border-primary-200/50 hover:border-primary-400 hover:bg-primary-50 transition-all duration-300 group shadow-sm hover:shadow-md"
-                >
-                  <div className="flex items-center space-x-2">
-                    <FiUsers className="text-lg text-primary-600" />
-                    <span className="text-sm font-medium text-gray-700 group-hover:text-primary-700">
-                      Service Provider
-                    </span>
-                  </div>
-                  <span className="text-primary-600 text-lg transform group-hover:translate-x-1 transition-transform duration-300">
-                    →
-                  </span>
-                </button>
-              </div>
-            )} */}
 
             <NavItem
               icon={<FiSettings />}
