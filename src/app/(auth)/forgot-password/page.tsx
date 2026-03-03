@@ -1,3 +1,5 @@
+"use client";
+
 import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
@@ -33,7 +35,7 @@ export default function ForgotPasswordPage() {
         <div className="text-center mb-8 animate-fadeUp">
           <Link href="/" className="inline-block">
             <Image
-              src="/logo.png"
+              src="/images/logo.png"
               alt="Logo"
               width={150}
               height={40}
