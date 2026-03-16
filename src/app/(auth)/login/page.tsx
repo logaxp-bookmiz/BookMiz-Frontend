@@ -1,162 +1,249 @@
 "use client";
 
-import { useState } from "react";
-import Link from "next/link";
-import Image from "next/image";
-import { FaEyeSlash } from "react-icons/fa";
+import React, { useState, useEffect } from "react";
+import {
+  Eye,
+  EyeOff,
+  Mail,
+  Lock,
+  ArrowRight,
+  Check,
+  Shield,
+  ArrowLeft,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
-import { EyeIcon } from "lucide-react";
+import Link from "next/link";
 
-export default function LoginPage() {
-  const [showPassword, setShowPassword] = useState(false);
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+const LoginPage: React.FC = () => {
   const router = useRouter();
+  const [formData, setFormData] = useState({ email: "", password: "" });
+  const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
+  const [selectedUserType, setSelectedUserType] = useState<string | null>(null);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const userType = sessionStorage.getItem("selectedUserType");
+      setSelectedUserType(userType);
+    }
+  }, []);
+
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
-    // Add your login logic here
-    setTimeout(() => {
-      setIsLoading(false);
-      router.push("/pre-dashboard"); // ← Redirect to Pre-Dashboard
-    }, 2000);
+    setValidationErrors([]);
+
+    const errors: string[] = [];
+
+    if (!formData.email.trim()) errors.push("Email is required");
+    if (!formData.password.trim()) errors.push("Password is required");
+    if (
+      formData.email.trim() &&
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)
+    ) {
+      errors.push("Invalid email address");
+    }
+
+    if (errors.length > 0) {
+      setValidationErrors(errors);
+      return;
+    }
+
+    // Navigate based on user type
+    if (selectedUserType === "service-provider") {
+      router.push("/service-pro");
+    } else {
+      router.push("/user"); // default for customer
+    }
   };
 
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    if (validationErrors.length > 0) setValidationErrors([]);
+  };
+
+  const benefits = [
+    "Access your dashboard anytime",
+    "Manage your appointments",
+    "View booking history",
+    "Update your profile settings",
+  ];
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-secondary-500 via-secondary-600 to-secondary-800 flex items-center justify-center p-4 relative overflow-hidden">
-      {/* Animated background elements */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-20 left-10 w-72 h-72 bg-primary-500/10 rounded-full blur-3xl animate-pulse"></div>
+    <div className="flex flex-col lg:flex-row min-h-screen">
+      {/* Left Side - Benefits - Hidden on Mobile */}
+      <div className="hidden lg:block lg:w-1/2 relative p-8 lg:p-12 text-white overflow-hidden">
         <div
-          className="absolute bottom-20 right-10 w-96 h-96 bg-primary-500/5 rounded-full blur-3xl animate-pulse"
-          style={{ animationDelay: "1s" }}
-        ></div>
-        <div
-          className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-primary-500/5 rounded-full blur-3xl animate-pulse"
-          style={{ animationDelay: "2s" }}
-        ></div>
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+          style={{
+            backgroundImage:
+              "url('https://images.unsplash.com/photo-1560066984-138dadb4c035?w=800&h=1200&fit=crop')",
+          }}
+        />
+        <div className="absolute inset-0 bg-gradient-to-br from-secondary-500/90 to-secondary-500/95" />
+
+        <div className="relative z-10 h-full flex flex-col justify-center items-center text-center max-w-md mx-auto">
+          <div className="mb-8">
+            <h1 className="text-4xl lg:text-5xl font-bold mb-4 text-white drop-shadow-lg tracking-tight">
+              Welcome Back
+            </h1>
+            <p className="text-white/90 text-xl font-light leading-relaxed">
+              Sign in to access your BookMiz account and continue your journey
+            </p>
+          </div>
+
+          <div className="space-y-4 mb-8 w-full">
+            {benefits.map((benefit, index) => (
+              <div key={index} className="flex items-center space-x-4 group">
+                <div className="flex-shrink-0 w-8 h-8 bg-primary-500 rounded-full flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
+                  <Check className="w-5 h-5 text-white font-bold" />
+                </div>
+                <span className="text-white text-lg font-medium group-hover:text-primary-500 transition-colors duration-300">
+                  {benefit}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6 border border-white/20 shadow-2xl w-full">
+            <div className="flex items-center space-x-4">
+              <div className="p-3 bg-primary-500/20 rounded-full">
+                <Shield className="w-8 h-8 text-primary-500" />
+              </div>
+              <div>
+                <h3 className="font-bold text-xl text-white mb-1">
+                  Secure Access
+                </h3>
+                <p className="text-primary-500 text-base font-medium">
+                  Your data is protected with enterprise-grade security
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
-      {/* Login Card */}
-      <div className="w-full max-w-md relative z-10">
-        {/* Back Button */}
-        <div className="mb-6 animate-fadeUp">
-          <Link
-            href="/"
-            className="inline-flex items-center gap-2 text-white hover:text-primary-500 transition-colors group"
-          >
-            <svg
-              className="w-5 h-5 transition-transform group-hover:-translate-x-1"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
+      {/* Right Side - Login Form */}
+      <div className="w-full lg:w-1/2 px-6 py-4 sm:p-6 lg:p-12 bg-gray-50 flex items-center justify-center min-h-screen lg:min-h-0">
+        <div className="w-full max-w-md">
+
+          {/* Back Button */}
+          <div className="mb-4 sm:mb-6">
+            <button
+              onClick={() => router.push("/login-type-selection")}
+              className="inline-flex items-center text-gray-600 hover:text-primary-500 transition-colors duration-300 group"
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M10 19l-7-7m0 0l7-7m-7 7h18"
-              />
-            </svg>
-            <span className="font-semibold font-dmsans">Back to Home</span>
-          </Link>
-        </div>
+              <ArrowLeft className="w-4 h-4 mr-2 group-hover:-translate-x-1 transition-transform duration-300" />
+              <span className="text-sm font-medium">Back to Selection</span>
+            </button>
+          </div>
 
-        {/* Logo */}
-        <div
-          className="text-center mb-8 animate-fadeUp"
-          style={{ animationDelay: "0.05s" }}
-        >
-          <Link href="/" className="inline-block">
-            <Image
-              src="/logo.png"
-              alt="Logo"
-              width={150}
-              height={40}
-              className="mx-auto mb-4"
-            />
-          </Link>
-          <h1 className="text-3xl font-bold text-white font-montserrat mb-2">
-            Welcome Back
-          </h1>
-          <p className="text-gray-300 font-dmsans">
-            Sign in to continue to your account
-          </p>
-        </div>
+          <div className="text-center mb-6 sm:mb-8 lg:mb-10">
+            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-2 sm:mb-3 tracking-tight">
+              Sign In
+            </h2>
+            {selectedUserType && (
+              <div className="mb-3">
+                <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-primary-100 text-primary-800">
+                  {selectedUserType === "customer"
+                    ? "Customer"
+                    : "Service Provider"}
+                </span>
+              </div>
+            )}
+            <p className="text-gray-600 text-base sm:text-lg font-light">
+              Enter your credentials to access your account
+            </p>
+          </div>
 
-        {/* Form Card */}
-        <div
-          className="bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl p-8 border border-white/20 animate-fadeUp"
-          style={{ animationDelay: "0.15s" }}
-        >
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Email Input */}
-            <div className="space-y-2">
+          <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
+
+            {/* Validation Errors */}
+            {validationErrors.length > 0 && (
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm shadow-sm">
+                <ul className="list-disc list-inside space-y-1">
+                  {validationErrors.map((error, index) => (
+                    <li key={index}>{error}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* Email Field */}
+            <div>
               <label
                 htmlFor="email"
-                className="block text-sm font-semibold text-secondary-500 font-dmsans"
+                className="block text-sm font-semibold text-gray-800 mb-2 sm:mb-3"
               >
                 Email Address
               </label>
-              <input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@example.com"
-                required
-                className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-primary-500 focus:ring-4 focus:ring-primary-500/20 outline-none transition-all duration-300 font-dmsans placeholder:text-gray-400"
-              />
+              <div className="relative">
+                <Mail className="absolute left-3 sm:left-4 top-1/2 transform -translate-y-1/2 w-4 sm:w-5 h-4 sm:h-5 text-gray-400" />
+                <input
+                  id="email"
+                  name="email"
+                  type="email"
+                  required
+                  value={formData.email}
+                  onChange={handleInputChange}
+                  className="w-full pl-10 sm:pl-12 pr-4 py-2.5 sm:py-3 border border-gray-200 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-300 hover:border-gray-300 text-xs sm:text-sm bg-white shadow-sm"
+                  placeholder="Enter your email"
+                />
+              </div>
             </div>
 
-            {/* Password Input */}
-            <div className="space-y-2">
+            {/* Password Field */}
+            <div>
               <label
                 htmlFor="password"
-                className="block text-sm font-semibold text-secondary-500 font-dmsans"
+                className="block text-sm font-semibold text-gray-800 mb-2 sm:mb-3"
               >
                 Password
               </label>
               <div className="relative">
+                <Lock className="absolute left-3 sm:left-4 top-1/2 transform -translate-y-1/2 w-4 sm:w-5 h-4 sm:h-5 text-gray-400" />
                 <input
                   id="password"
+                  name="password"
                   type={showPassword ? "text" : "password"}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter your password"
                   required
-                  className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-primary-500 focus:ring-4 focus:ring-primary-500/20 outline-none transition-all duration-300 font-dmsans placeholder:text-gray-400 pr-12"
+                  value={formData.password}
+                  onChange={handleInputChange}
+                  className="w-full pl-10 sm:pl-12 pr-10 sm:pr-12 py-2.5 sm:py-3 border border-gray-200 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-300 hover:border-gray-300 text-xs sm:text-sm bg-white shadow-sm"
+                  placeholder="Enter your password"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-secondary-500 transition-colors"
+                  className="absolute right-3 sm:right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors duration-300"
                 >
                   {showPassword ? (
-                    <FaEyeSlash className="w-5 h-5" />
+                    <EyeOff className="w-4 sm:w-5 h-4 sm:h-5" />
                   ) : (
-                    <EyeIcon className="w-5 h-5" />
+                    <Eye className="w-4 sm:w-5 h-4 sm:h-5" />
                   )}
                 </button>
               </div>
             </div>
 
-            {/* Remember & Forgot */}
-            <div className="flex items-center justify-between">
-              <label className="flex items-center gap-2 cursor-pointer group">
+            {/* Remember Me & Forgot Password */}
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between pt-2 space-y-2 sm:space-y-0">
+              <label className="flex items-center cursor-pointer">
                 <input
                   type="checkbox"
-                  className="w-4 h-4 rounded border-2 border-gray-300 text-primary-500 focus:ring-2 focus:ring-primary-500/20 cursor-pointer"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  className="h-4 sm:h-5 w-4 sm:w-5 text-primary-500 focus:ring-primary-500 border-gray-300 rounded-md"
                 />
-                <span className="text-sm text-gray-600 group-hover:text-secondary-500 transition-colors font-dmsans">
+                <span className="ml-2 sm:ml-3 text-xs sm:text-sm text-gray-700 font-medium">
                   Remember me
                 </span>
               </label>
+              
               <Link
                 href="/auth/forgot-password"
-                className="text-sm font-semibold text-primary-500 hover:text-primary-600 transition-colors font-dmsans"
+                className="text-xs sm:text-sm text-primary-500 hover:text-primary-600 transition-colors duration-300 font-semibold"
               >
                 Forgot password?
               </Link>
@@ -165,105 +252,31 @@ export default function LoginPage() {
             {/* Submit Button */}
             <button
               type="submit"
-              disabled={isLoading}
-              className="w-full bg-gradient-to-r from-primary-500 to-primary-600 text-white font-bold py-3.5 rounded-xl shadow-lg hover:shadow-xl transform hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed font-montserrat text-lg relative overflow-hidden group"
+              className="w-full bg-primary-500 text-white py-2.5 sm:py-3 px-3 sm:px-4 rounded-lg sm:rounded-xl font-bold text-sm sm:text-base hover:bg-primary-600 focus:ring-2 focus:ring-primary-200 transition-all duration-300 flex items-center justify-center space-x-2 sm:space-x-3 shadow-lg hover:shadow-xl hover:scale-105 transform mt-6 sm:mt-8"
             >
-              <span className="relative z-10">
-                {isLoading ? (
-                  <div className="flex items-center justify-center gap-2">
-                    <div className="w-5 h-5 border-3 border-white/30 border-t-white rounded-full animate-spin"></div>
-                    Signing in...
-                  </div>
-                ) : (
-                  "Sign In"
-                )}
-              </span>
-              <div className="absolute inset-0 bg-gradient-to-r from-primary-600 to-primary-700 transform scale-x-0 group-hover:scale-x-100 transition-transform origin-left duration-300"></div>
+              <span>Sign In</span>
+              <ArrowRight className="w-4 sm:w-5 h-4 sm:h-5" />
             </button>
+
+            {/* Sign Up Link */}
+            <div className="text-center pt-4 sm:pt-6">
+              <p className="text-xs sm:text-sm text-gray-600">
+                Don't have an account?{" "}
+                
+                <Link
+                  href="/auth/register"
+                  className="text-primary-500 hover:text-primary-600 font-semibold transition-colors duration-300"
+                >
+                  Create Account
+                </Link>
+              </p>
+            </div>
+
           </form>
-
-          {/* Divider */}
-          <div className="relative my-8">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-200"></div>
-            </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="px-4 bg-white text-gray-500 font-dmsans">
-                Or continue with
-              </span>
-            </div>
-          </div>
-
-          {/* Social Login */}
-          <div className="grid grid-cols-2 gap-4">
-            <button
-              type="button"
-              className="flex items-center justify-center gap-2 px-4 py-3 border-2 border-gray-200 rounded-xl hover:border-primary-500 hover:bg-primary-50 transition-all duration-300 group"
-            >
-              <svg className="w-5 h-5" viewBox="0 0 24 24">
-                <path
-                  fill="currentColor"
-                  d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                  className="text-[#4285F4]"
-                />
-                <path
-                  fill="currentColor"
-                  d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                  className="text-[#34A853]"
-                />
-                <path
-                  fill="currentColor"
-                  d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-                  className="text-[#FBBC05]"
-                />
-                <path
-                  fill="currentColor"
-                  d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                  className="text-[#EA4335]"
-                />
-              </svg>
-              <span className="font-semibold text-gray-700 group-hover:text-primary-500 transition-colors font-dmsans">
-                Google
-              </span>
-            </button>
-
-            <button
-              type="button"
-              className="flex items-center justify-center gap-2 px-4 py-3 border-2 border-gray-200 rounded-xl hover:border-primary-500 hover:bg-primary-50 transition-all duration-300 group"
-            >
-              <svg
-                className="w-5 h-5 text-[#1877F2]"
-                fill="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
-              </svg>
-              <span className="font-semibold text-gray-700 group-hover:text-primary-500 transition-colors font-dmsans">
-                Facebook
-              </span>
-            </button>
-          </div>
-
-          {/* Sign Up Link */}
-          <p className="mt-8 text-center text-sm text-gray-600 font-dmsans">
-            Don't have an account?{" "}
-            <Link
-              href="/register"
-              className="font-bold text-primary-500 hover:text-primary-600 transition-colors"
-            >
-              Sign up for free
-            </Link>
-          </p>
         </div>
-
-        {/* Footer */}
-        <p
-          className="mt-8 text-center text-sm text-gray-300 font-dmsans animate-fadeUp"
-          style={{ animationDelay: "0.25s" }}
-        >
-          © 2024 BookMiz. All rights reserved.
-        </p>
       </div>
     </div>
   );
-}
+};
+
+export default LoginPage;

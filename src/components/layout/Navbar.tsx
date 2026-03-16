@@ -192,7 +192,7 @@ const Navbar = ({
               {/* Auth Actions Group */}
               <div className="flex items-center gap-4">
                 <a
-                  href="/login"
+                  href="/login-type-selection"
                   className={`transition-all duration-300 hover:scale-105 ${textColorClass} ${hoverColorClass} font-medium px-3 py-2 rounded-lg hover:bg-white/10`}
                 >
                   Log In
