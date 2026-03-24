@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Eye,
   EyeOff,
@@ -11,35 +11,26 @@ import {
   ArrowRight,
   Check,
   Shield,
-  UserPlus,
   ArrowLeft,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import CountrySelector from "@/components/ui/CountrySelector";
 import { Country, defaultCountry } from "@/utils/countries";
+import { toast } from "sonner";
+import { useRegister } from "@/hooks/useAuth";
 
 const SignUpPage: React.FC = () => {
   const router = useRouter();
+  const registerMutation = useRegister();
   const [selectedUserType, setSelectedUserType] = useState<string | null>(null);
-  const [isRegistering, setIsRegistering] = useState(false);
-  const [registerError, setRegisterError] = useState<Error | null>(null);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [user, setUser] = useState(null);
 
   // Get selected user type from sessionStorage
-  React.useEffect(() => {
+  useEffect(() => {
     if (typeof window !== "undefined") {
       const userType = sessionStorage.getItem("selectedUserType");
       setSelectedUserType(userType);
     }
   }, []);
-
-  // Redirect authenticated users to dashboard (standard practice)
-  React.useEffect(() => {
-    if (isAuthenticated && user) {
-      router.replace("/profile/dashboard");
-    }
-  }, [isAuthenticated, user, router]);
 
   const [formData, setFormData] = useState({
     firstname: "",
@@ -73,7 +64,7 @@ const SignUpPage: React.FC = () => {
     currencyCode: "",
   });
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (typeof window !== "undefined" && isServiceProvider) {
       const draft = sessionStorage.getItem("registrationBusinessDraft");
       if (draft) {
@@ -86,7 +77,7 @@ const SignUpPage: React.FC = () => {
   }, [isServiceProvider]);
 
   const handleBusinessChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => {
     const { name, value } = e.target;
     setBusinessData((prev) => {
@@ -94,7 +85,7 @@ const SignUpPage: React.FC = () => {
       if (typeof window !== "undefined") {
         sessionStorage.setItem(
           "registrationBusinessDraft",
-          JSON.stringify(next)
+          JSON.stringify(next),
         );
       }
       return next;
@@ -149,7 +140,7 @@ const SignUpPage: React.FC = () => {
   };
 
   const checkPasswordStrength = (
-    password: string
+    password: string,
   ): "weak" | "medium" | "strong" | null => {
     if (!password) return null;
     if (password.length < 6) return "weak";
@@ -161,12 +152,12 @@ const SignUpPage: React.FC = () => {
     e.preventDefault();
 
     if (!agreeToTerms) {
-      alert("Please agree to the terms and conditions");
+      toast("Please agree to the terms and conditions");
       return;
     }
 
     if (!formData.password || !formData.confirmPassword) {
-      alert("Please fill in both password fields");
+      toast("Please fill in both password fields");
       return;
     }
 
@@ -175,8 +166,13 @@ const SignUpPage: React.FC = () => {
       return;
     }
 
+    if (!formData.email) {
+      toast("Please enter your email");
+      return;
+    }
+
     if (passwordStrength === "weak") {
-      alert("Password is too weak. Please choose a stronger password.");
+      toast("Password is too weak. Please choose a stronger password.");
       return;
     }
 
@@ -187,52 +183,41 @@ const SignUpPage: React.FC = () => {
 
     if (isServiceProvider && currentStep === 2) {
       if (!businessData.name) {
-        alert("Please enter your business name");
+        toast("Please enter your business name");
         return;
       }
     }
 
-    try {
-      setIsRegistering(true);
-      setRegisterError(null);
-      
-      const { confirmPassword, phoneNumber, ...dataForBackend } = formData;
-      // Add the full phone number with country code
-      let payload: any = {
-        ...dataForBackend,
-        phoneNumber: getFullPhoneNumber(),
+    const { confirmPassword, phoneNumber, ...dataForBackend } = formData;
+    // Add the full phone number with country code
+    let payload: any = {
+      ...dataForBackend,
+      phoneNumber: getFullPhoneNumber(),
+    };
+
+    // If service provider, include business payload
+    if (isServiceProvider) {
+      const business = {
+        name: businessData.name || "",
+        about: businessData.about || "",
+        address: businessData.address || "",
+        city: businessData.city || "",
+        state: businessData.state || "",
+        country: businessData.country || "",
+        currencyCode: businessData.currencyCode || "",
       };
-
-      // If service provider, include business payload
-      if (isServiceProvider) {
-        const business = {
-          name: businessData.name || "",
-          about: businessData.about || "",
-          address: businessData.address || "",
-          city: businessData.city || "",
-          state: businessData.state || "",
-          country: businessData.country || "",
-          currencyCode: businessData.currencyCode || "",
-        };
-        if (business.name) {
-          payload = { ...payload, business: [business] };
-        }
+      if (business.name) {
+        payload = { ...payload, business: [business] };
       }
-
-      // Simulate successful registration
-      console.log("Registration payload:", payload);
-      
-      // Mock successful registration
-      setTimeout(() => {
-        setIsAuthenticated(true);
-        setUser({ email: formData.email, firstname: formData.firstname });
-        router.push("/auth/login");
-      }, 1000);
-      
-    } catch (error) {
-      setRegisterError(error as Error);
-      setIsRegistering(false);
     }
+
+    registerMutation.mutate(payload, {
+      onSuccess: () => {
+        router.push(
+          `/verify-email?email=${encodeURIComponent(formData.email)}`,
+        );
+      },
+    });
   };
 
   const benefits = [
@@ -309,7 +294,7 @@ const SignUpPage: React.FC = () => {
           {/* Back Button and User Type Display */}
           <div className="mb-4 sm:mb-6">
             <button
-              onClick={() => router.push("/auth/login-type-selection")}
+              onClick={() => router.push("/register-type-selection")}
               className="inline-flex items-center text-gray-600 hover:text-primary-500 transition-colors duration-300 group"
             >
               <ArrowLeft className="w-4 h-4 mr-2 group-hover:-translate-x-1 transition-transform duration-300" />
@@ -350,13 +335,6 @@ const SignUpPage: React.FC = () => {
           </div>
 
           <div className="space-y-4 sm:space-y-6">
-            {/* Error Display */}
-            {registerError && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm shadow-sm">
-                {registerError.message}
-              </div>
-            )}
-
             {/* Step 1: Personal Info */}
             {(!isServiceProvider || currentStep === 1) && (
               <>
@@ -506,10 +484,10 @@ const SignUpPage: React.FC = () => {
                               passwordStrength === "weak"
                                 ? "bg-red-400"
                                 : passwordStrength === "medium"
-                                ? "bg-yellow-400"
-                                : passwordStrength === "strong"
-                                ? "bg-green-400"
-                                : "bg-gray-200"
+                                  ? "bg-yellow-400"
+                                  : passwordStrength === "strong"
+                                    ? "bg-green-400"
+                                    : "bg-gray-200"
                             }`}
                           ></div>
                           <div
@@ -517,8 +495,8 @@ const SignUpPage: React.FC = () => {
                               passwordStrength === "medium"
                                 ? "bg-yellow-400"
                                 : passwordStrength === "strong"
-                                ? "bg-green-400"
-                                : "bg-gray-200"
+                                  ? "bg-green-400"
+                                  : "bg-gray-200"
                             }`}
                           ></div>
                           <div
@@ -534,10 +512,10 @@ const SignUpPage: React.FC = () => {
                             passwordStrength === "weak"
                               ? "text-red-600"
                               : passwordStrength === "medium"
-                              ? "text-yellow-600"
-                              : passwordStrength === "strong"
-                              ? "text-green-600"
-                              : "text-gray-500"
+                                ? "text-yellow-600"
+                                : passwordStrength === "strong"
+                                  ? "text-green-600"
+                                  : "text-gray-500"
                           }`}
                         >
                           {passwordStrength}
@@ -779,7 +757,7 @@ const SignUpPage: React.FC = () => {
                   type="submit"
                   onClick={handleSubmit}
                   disabled={
-                    isRegistering ||
+                    registerMutation.isPending ||
                     !agreeToTerms ||
                     !formData.password ||
                     !formData.confirmPassword ||
@@ -788,7 +766,7 @@ const SignUpPage: React.FC = () => {
                   }
                   className="flex-1 bg-primary-500 text-white py-2.5 sm:py-3 px-3 sm:px-4 rounded-lg sm:rounded-xl font-bold text-sm sm:text-base hover:bg-primary-600 focus:ring-2 focus:ring-primary-200 transition-all duration-300 flex items-center justify-center space-x-2 sm:space-x-3 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl hover:scale-105 transform"
                 >
-                  {isRegistering ? (
+                  {registerMutation.isPending ? (
                     <div className="w-5 sm:w-6 h-5 sm:h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
                   ) : (
                     <>

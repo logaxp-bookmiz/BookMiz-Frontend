@@ -15,7 +15,9 @@ import Reviews from "@/components/features/home/Reviews";
 import Footer from "@/components/layout/Footer";
 
 export default function HomePage() {
-  const [selectedPage, setSelectedPage] = useState<SelectedPage>(SelectedPage.Home);
+  const [selectedPage, setSelectedPage] = useState<SelectedPage>(
+    SelectedPage.Home,
+  );
 
   return (
     <>
@@ -25,16 +27,16 @@ export default function HomePage() {
         isScrolled={false} // optional, can keep static
       />
       <main className="p-8">
-        <Hero/>
-        <RecommendedProfessionals/>
-        <WhyUs/>
-        <JoinBussines/>
-        <Plans/>
-        <JoinUs/>
-      
-         <Reviews />
-      <Faq />
-            <Footer />
+        <Hero />
+        <RecommendedProfessionals />
+        <WhyUs />
+        <JoinBussines />
+        <Plans />
+        <JoinUs />
+
+        <Reviews />
+        <Faq />
+        <Footer />
       </main>
       {/* <Footer /> */}
     </>

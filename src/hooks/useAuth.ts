@@ -14,9 +14,7 @@ export const useRegister = () => {
       toast.error(apiError.message);
     },
     onSuccess: ({ data }) => {
-      localStorage.setItem('token', data.token);
-      queryClient.invalidateQueries({ queryKey: ['currentUser'] });
-      toast.success('Registration successful!');
+      toast.success('Registration successful, please verify your email before logging in!');
     },
   });
 };
