@@ -211,13 +211,16 @@ const SignUpPage: React.FC = () => {
       }
     }
 
-    registerMutation.mutate(payload, {
-      onSuccess: () => {
-        router.push(
-          `/verify-email?email=${encodeURIComponent(formData.email)}`,
-        );
-      },
-    });
+    // registerMutation.mutate(payload, {
+    //   onSuccess: () => {
+    //     router.push(
+    //       `/verify-email?email=${encodeURIComponent(formData.email)}`,
+    //     );
+    //   },
+    // });
+
+
+    router.push(`/verify-email?email=${encodeURIComponent(formData.email)}`);
   };
 
   const benefits = [
